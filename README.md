@@ -33,7 +33,7 @@ This application is written on the [PyQt6](https://pypi.org/project/PyQt6/) appl
 - Novoselova varvara
 
 ## License
-- This project is licensed under the MIT License - see the [LICENSE](https://github.com/wendiia/course_work/master/LICENSE) file for details
+- This project is licensed under the MIT License - see the [LICENSE](https://github.com/wendiia/course_work/blob/master/LICENSE) file for details
 
 ## Gratitude
 - Inspiration to all
