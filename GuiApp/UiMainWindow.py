@@ -244,7 +244,7 @@ class UiMainWindow(object):
         self.lbl_title.setMinimumSize(QtCore.QSize(0, 0))
         self.lbl_title.setAlignment(Qt.AlignCenter)
         self.lbl_title.setObjectName("lbl_title")
-        self.lbl_title.setText("Кондитерская 'Еще кусочек'")
+        self.lbl_title.setText('Кондитерская "Еще кусочек"')
 
         self.btns_navigation.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.btns_navigation.setObjectName("btns_navigation")
