@@ -118,7 +118,7 @@ QFrame#main_header {
 	background-color: rgb(246, 148, 164);
 }
 QFrame#main_header QLabel{
-	font-family: 'Rozovii Chulok';
+	font-family: 'Microsoft YaHei UI Light';
 	font-size: 50px;
 	font-weight: bold;
 	color: #fff;
