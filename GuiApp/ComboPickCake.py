@@ -1,10 +1,13 @@
-from PyQt6.QtWidgets import QComboBox
+from PyQt5.QtWidgets import QComboBox
 
 
 class ComboPickCake(QComboBox):
     def __init__(self, parent, id_cakes):
         super().__init__(parent)
         self.addItems(list(id_cakes.keys()))
-        self.setAutoFillBackground(False)
-        self.setEditable(True)
-        self.setFrame(True)
+        self.setStyleSheet("""QComboBox {
+                            font: 15pt "Microsoft YaHei UI Light";
+                            font-weight: bold;
+                            background-color: rgb(255, 244, 246);
+                            border: none;
+                            }""")

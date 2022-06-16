@@ -1,205 +1,207 @@
-#!/usr/bin/python
-# -*- coding: windows-1251 -*-
-import sqlite3
-from PyQt6 import QtWidgets
-from PyQt6.QtCore import QDate
-import Sql_data
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
+from PyQt5.QtCore import QDate
+from PyQt5.QtCore import Qt, QPropertyAnimation
+from PyQt5.QtWidgets import QMainWindow
+import asyncio
+import SqlData
 from GuiApp import *
+WINDOW_SIZE = 0
 
 
-class OrderSystem(UiMainWindow):
-    def __init__(self, main_window):
-        super().__init__(main_window)
-        self.bd = "./Sql_data/CakeDb.db"
-        Sql_data.Database(self.bd)
-        self.dict_cake_id = {}  # ÒÎÓ‚‡¸ {id_cake: name_cake}, ËÁ Ú‡·ÎËˆ˚ cake (cake_db)
-        self.widgets_mas = []  # ÂÍÁÂÏÔÎˇ˚ Ó·˙ÂÍÚÓ‚ ÍÎ‡ÒÒ‡ ‚Ë‰ÊÂÚÓ‚: [[Combo_cakes(), Date_edit(), Date_edit()]]
+class OrderSystem(QMainWindow):
+    def __init__(self):
+        self.all_money = None
+        self.ex = None
+        self.dict_cake_id = {}  # —Å–ª–æ–≤–∞—Ä—å {id_cake: name_cake}, –∏–∑ —Ç–∞–±–ª–∏—Ü—ã cake (cake_db)
+        self.widgets_mas = []  # —ç–∫–∑–µ–º–ø–ª—è—Ä—ã –æ–±—ä–µ–∫—Ç–æ–≤ –∫–ª–∞—Å—Å–∞ –≤–∏–¥–∂–µ—Ç–æ–≤: [[Combo_cakes(), Date_edit(), Date_edit()]]
+        self.ingredients = []
+        self.min_date = ""
+        self.max_date = ""
         self.row_flag = True
+        self.animation = None
+        self.click_position = None
+        QMainWindow.__init__(self)
 
-        connection = sqlite3.connect(self.bd)
-        cur = connection.cursor()
-        query = """SELECT MIN(date_begin), MAX(date_begin)
-                   FROM orders"""
-        cur.execute(query)
-        min_date, max_date = cur.fetchone()
+        self.ui = UiMainWindow(self)
+        self.ui.setup_ui()
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        QtWidgets.QSizeGrip(self.ui.size_grip)
 
-        date_ingredients = (QDate.fromString(min_date, "yyyy-MM-dd"), QDate.fromString(max_date, "yyyy-MM-dd"))
-        self.date_begin_ingr.setDate(QDate(date_ingredients[0]))
-        self.date_end_ingr.setDate(QDate(date_ingredients[1]))
-        query = """SELECT name_ingr
-                   FROM ingredients"""
-        cur.execute(query)
-        result = [" ".join(x) for x in cur.fetchall()]
-        self.combo_ingr.addItem("¬ÒÂ ËÌ„Â‰ËÂÌÚ˚")
-        self.combo_ingr.addItems(result)
-        connection.close()
+        def move_window(e):
+            if not self.isMaximized():
+                if e.buttons() == Qt.LeftButton:
+                    self.move(self.pos() + e.globalPos() - self.click_position)
+                    self.click_position = e.globalPos()
+                    e.accept()
 
-        # ‚˚ÁÓ‚ Ì‡˜‡Î¸Ì˚ı Ù-ËÈ
-        self.cake_id()
+        self.ui.main_header.mouseMoveEvent = move_window
+        self.ui.btn_toggle.clicked.connect(lambda: self.slide_left_menu())
+        self.ui.stacked_widget.setCurrentWidget(self.ui.orders_page)
+        self.settings_ui_btns()
+
+        self.db = "./SqlData/CakeDb.db"  # –ø–æ–¥—É–º–∞–π –≥–¥–µ –ª—É—á—à–µ —Ö—Ä–∞–Ω–∏—Ç—å –≤ –¥–∞—Ç–∞–±–∞–∑–µ –∏–ª–∏ —Ç—É—Ç
+        asyncio.run(self.main_async())
+
+        self.ui.date_begin_ingr.setDate(QDate.fromString(self.min_date, "yyyy-MM-dd"))
+        self.ui.date_end_ingr.setDate(QDate.fromString(self.max_date, "yyyy-MM-dd"))
+        self.ui.combo_ingr.addItems(self.ingredients)
+
+        # –≤—ã–∑–æ–≤ –Ω–∞—á–∞–ª—å–Ω—ã—Ö —Ñ-–∏–π
         self.clicked_btn()
-        self.load_date()  # Á‡„ÛÁÍ‡ ËÁÌ‡˜‡Î¸ÌÂ˚ı ‰‡ÌÌ˚ı Ò ·‰
-        self.list_ingedients()
+        self.load_date()  # –∑–∞–≥—Ä—É–∑–∫–∞ –∏–∑–Ω–∞—á–∞–ª—å–Ω–µ—ã—Ö –¥–∞–Ω–Ω—ã—Ö —Å –±–¥
+        self.list_ingredients()
+        self.show()
 
-    def list_ingedients(self):
-        connection = sqlite3.connect(self.bd)
-        cur = connection.cursor()
-        min_date = self.date_begin_ingr.date().toPyDate().strftime('%Y-%m-%d')
-        max_date = self.date_end_ingr.date().toPyDate().strftime('%Y-%m-%d')
-        data = [min_date, max_date]
-        if self.combo_ingr.currentText() == "¬ÒÂ ËÌ„Â‰ËÂÌÚ˚":
-            query = """
-                        SELECT name_ingr, SUM(count), name_unit
-                        FROM
-                            (SELECT id_cake
-                            FROM orders
-                            WHERE date_begin BETWEEN ? and ?) query1
-                        INNER JOIN recipes USING (id_cake)
-                        INNER JOIN ingredients USING (id_ingr)
-                        INNER JOIN units USING (id_unit)
-                        GROUP BY name_ingr"""
+    def mousePressEvent(self, event):
+        self.click_position = event.globalPos()
+
+    def slide_left_menu(self):
+        width = self.ui.left_side_menu.width()
+        if width == 50:
+            new_width = 160
         else:
-            query = """
-                        SELECT name_cake, name_ingr, SUM(count), name_unit
-                        FROM
-                            (SELECT id_cake
-                            FROM orders
-                            WHERE date_begin BETWEEN ? and ?) query1
-                        INNER JOIN cake USING(id_cake)
-                        INNER JOIN recipes USING (id_cake)
-                        INNER JOIN ingredients USING (id_ingr)
-                        INNER JOIN units USING (id_unit)
-                        WHERE name_ingr =  ?
-                        GROUP BY name_cake"""
-            data.append(self.combo_ingr.currentText())  # ------------------------!
-        length_data = len(data)
-        self.list_ingr.clear()
-        for i in cur.execute(query, data):
-            if length_data == 3:
-                result_str = f"{i[0]}{'-' * (30 - len(i[1]))}{i[2]} {i[3]}"
-            else:
-                result_str = f"{i[0]}{'-' * (30 - len(i[0]))}{i[1]} {i[2]}"
-            self.list_ingr.addItem(result_str)
-        connection.close()
+            new_width = 50
+        self.animation = QPropertyAnimation(self.ui.left_side_menu, b"minimumWidth")
+        self.animation.setDuration(250)
+        self.animation.setStartValue(width)
+        self.animation.setEndValue(new_width)
+        self.animation.setEasingCurve(QtCore.QEasingCurve.InOutQuart)
+        self.animation.start()
 
-    def cake_id(self):
-        """‘ÓÏËÓ‚‡ÌËÂ dict_cake_id, „‰Â {id_cake: name_cake}, ËÁ Ú‡·ÎËˆ˚ cake (cake_db)"""
-        connection = sqlite3.connect(self.bd)
-        cur = connection.cursor()
-        query = "SELECT id_cake, name_cake " \
-                "FROM cake"
-        for i in cur.execute(query):
-            self.dict_cake_id[i[1]] = i[0]
-        connection.close()
+    def settings_ui_btns(self):
+        self.ui.btn_min.clicked.connect(lambda: self.showMinimized())
+        self.ui.btn_restore.clicked.connect(lambda: self.restore_maximize_win())
+        self.ui.btn_close.clicked.connect(lambda: self.close())
+        self.ui.btn_home_menu.clicked.connect(lambda: self.ui.stacked_widget.setCurrentWidget(self.ui.home_page))
+        self.ui.btn_orders_menu.clicked.connect(lambda: self.ui.stacked_widget.setCurrentWidget(self.ui.orders_page))
+        self.ui.btn_products_menu.clicked.connect(lambda:
+                                                  self.ui.stacked_widget.setCurrentWidget(self.ui.products_page))
+
+    def restore_maximize_win(self):
+        global WINDOW_SIZE
+        win_status = WINDOW_SIZE
+        if win_status == 0:
+            WINDOW_SIZE = 1
+            self.showMaximized()
+        else:
+            WINDOW_SIZE = 0
+            self.showNormal()
+
+    async def main_async(self):
+        self.ex = SqlData.Database(self.db)
+        result = await asyncio.gather(self.ex.min_max_dates(), self.ex.get_ingredients(),
+                                      self.ex.cake_id(), self.ex.orders_data())
+        self.min_date, self.max_date = result[0][0], result[0][1]
+        self.ingredients = result[1]
+        self.dict_cake_id = result[2]
 
     def clicked_btn(self):
-        """Œ·‡·ÓÚ˜ËÍ ÍÌÓÔÓÍ"""
-        self.btn_load.clicked.connect(self.load_date)
-        self.btn_add.clicked.connect(self.add_new_row)
-        self.btn_del.clicked.connect(self.delete_row)
-        self.btn_save.clicked.connect(self.save_data)
-        self.btn_list_update.clicked.connect(self.list_ingedients)
+        """–û–±—Ä–∞–±–æ—Ç—á–∏–∫ –∫–Ω–æ–ø–æ–∫"""
+        self.ui.btn_load.clicked.connect(self.load_date)
+        self.ui.btn_add.clicked.connect(self.add_new_row)
+        self.ui.btn_del.clicked.connect(self.delete_row)
+        self.ui.btn_save.clicked.connect(self.save_data)
+        self.ui.btn_products.clicked.connect(self.list_ingredients)
 
     def load_date(self):
         """
-        «‡„ÛÁÍ‡ ‰‡ÌÌ˚ı Ò ·‰ sql CakeDb.db. —‡·‡Ú˚‚‡ÂÚ ÔË Ì‡Ê‡ÚËË Ì‡ ÍÌÓÔÍÛ '«‡„ÛÁËÚ¸'.
+        –ó–∞–≥—Ä—É–∑–∫–∞ –¥–∞–Ω–Ω—ã—Ö —Å –±–¥ sql CakeDb.db. –°—Ä–∞–±–∞—Ç—ã–≤–∞–µ—Ç –ø—Ä–∏ –Ω–∞–∂–∞—Ç–∏–∏ –Ω–∞ –∫–Ω–æ–ø–∫—É '–ó–∞–≥—Ä—É–∑–∏—Ç—å'.
         """
-        # Ó˜Ë˘ÂÌËÂ ÒÔËÒÍÓ‚, ı‡Ìˇ˘Ëı ˝ÍÁÂÏÔÎˇ˚ ‚Ë‰ÊÂÚÓ‚ comboBox Ë dateEdit
+        # –æ—á–∏—â–µ–Ω–∏–µ —Å–ø–∏—Å–∫–æ–≤, —Ö—Ä–∞–Ω—è—â–∏—Ö —ç–∫–∑–µ–º–ø–ª—è—Ä—ã –≤–∏–¥–∂–µ—Ç–æ–≤ comboBox –∏ dateEdit
         self.widgets_mas.clear()
+        data_orders = asyncio.run(self.ex.orders_data())
+        all_money = f"–ò—Ç–æ–≥–æ–≤–∞—è –ø—Ä–∏–±—ã–ª—å: {str(asyncio.run(self.ex.all_money())[0][0]) } —Ä—É–±."
+        self.ui.lbl_cost.setText(all_money)
 
-        connection = sqlite3.connect(self.bd)
-        cur = connection.cursor()
-        query = "SELECT id_main, fio, phone, name_cake, date_begin, date_end, cost " \
-                "FROM cake INNER JOIN orders USING (id_cake)"
+        self.ui.tbl.setRowCount(0)
 
-        self.tbl.setRowCount(0)
-        for row_number, row_data in enumerate(cur.execute(query)):  # ÔÓıÓ‰ ÔÓ ‰‡ÌÌ˚Ï Ú‡·ÎËˆ˚ sql
-            # ‚ÒÚ‡‚Í‡ ÌÓ‚ÓÈ ÒÚÓÍË Ë ‰Ó·‡‚ÎÂÌËÂ ‚Ë‰ÊÂÚÓ‚ ‚ ÒÔËÒÍË
-            self.tbl.insertRow(row_number)
+        for row_number, row_data in enumerate(data_orders):  # –ø—Ä–æ—Ö–æ–¥ –ø–æ –¥–∞–Ω–Ω—ã–º —Ç–∞–±–ª–∏—Ü—ã sql
+            # –≤—Å—Ç–∞–≤–∫–∞ –Ω–æ–≤–æ–π —Å—Ç—Ä–æ–∫–∏ –∏ –¥–æ–±–∞–≤–ª–µ–Ω–∏–µ –≤–∏–¥–∂–µ—Ç–æ–≤ –≤ —Å–ø–∏—Å–∫–∏
+            self.ui.tbl.insertRow(row_number)
+            self.widgets_mas.append([ComboPickCake(self, self.dict_cake_id), DateEdit(self),
+                                     DateEdit(self)])
 
-            self.widgets_mas.append([ComboPickCake(self.main_window, self.dict_cake_id), DateEdit(self.main_window),
-                                     DateEdit(self.main_window)])
-
-            for col_number, col_data in enumerate(row_data):  # Á‡ÔÓÎÌÂÌËÂ Ú‡·ÎËˆ˚ ‰‡ÌÌ˚ÏË
-                if col_number not in [3, 4, 5]:
-                    self.tbl.setItem(row_number, col_number, QtWidgets.QTableWidgetItem(str(col_data)))
-                elif col_number == 3:
-                    self.tbl.setCellWidget(row_number, col_number, self.widgets_mas[row_number][0])
-                    self.widgets_mas[row_number][0].setCurrentText(col_data)
+            for col_number, col_data in enumerate(row_data):  # –∑–∞–ø–æ–ª–Ω–µ–Ω–∏–µ —Ç–∞–±–ª–∏—Ü—ã –¥–∞–Ω–Ω—ã–º–∏
+                if col_number not in [4, 5, 6]:
+                    self.ui.tbl.setItem(row_number, col_number, QtWidgets.QTableWidgetItem(str(col_data)))
                 elif col_number == 4:
-                    date = QDate.fromString(col_data, "yyyy-MM-dd")
-                    self.tbl.setCellWidget(row_number, col_number, self.widgets_mas[row_number][1])
-                    self.widgets_mas[row_number][1].setDate(QDate(date))
+                    self.ui.tbl.setCellWidget(row_number, col_number, self.widgets_mas[row_number][0])
+                    self.widgets_mas[row_number][0].setCurrentText(col_data)
                 elif col_number == 5:
                     date = QDate.fromString(col_data, "yyyy-MM-dd")
-                    self.tbl.setCellWidget(row_number, col_number, self.widgets_mas[row_number][2])
+                    self.ui.tbl.setCellWidget(row_number, col_number, self.widgets_mas[row_number][1])
+                    self.widgets_mas[row_number][1].setDate(QDate(date))
+                elif col_number == 6:
+                    date = QDate.fromString(col_data, "yyyy-MM-dd")
+                    self.ui.tbl.setCellWidget(row_number, col_number, self.widgets_mas[row_number][2])
                     self.widgets_mas[row_number][2].setDate(QDate(date))
 
-        connection.close()
-        self.lbl_info.setText("ƒ‡ÌÌ˚Â Á‡„ÛÊÂÌ˚")
+        self.ui.lbl_info_tbl.setText("–î–∞–Ω–Ω—ã–µ –∑–∞–≥—Ä—É–∂–µ–Ω—ã")
         self.row_flag = True
 
-    def add_new_row(self):
-        """
-        ƒÓ·‡‚ÎÂÌËÂ ÌÓ‚ÓÈ ÒÚÓÍË.—‡·‡Ú˚‚‡ÂÚ ÔË Ì‡Ê‡ÚËË Ì‡ ÍÌÓÔÍÛ 'ƒÓ·‡‚ËÚ¸'
-        ¡ÂÁ ÒÓı‡ÌÂÌËˇ ‰‡ÌÌ˚ı ÏÓÊÌÓ ‰Ó·‡‚ËÚ¸ ÚÓÎ¸ÍÓ Ó‰ÌÛ ÒÚÓÍÛ, Á‡ ˝ÚÓ ÓÚ‚Â˜‡ÂÚ self.row_flag
-        """
-        if self.row_flag:  # ÂÒÎË ·˚Î‡ ‰Ó·‡‚ÎÂÌ‡ Ó‰Ì‡ ÌÂÒÓı‡ÌÌÂÌ‡ˇ ÒÚÓÍ‡
-            row_position = self.tbl.rowCount()
-            new_id = str(int(self.tbl.item(row_position - 1, 0).text()) + 1)
-
-            # ‰Ó·‡‚ÎÂÌËÂ ÌÓ‚ÓÈ ÒÚÓÍË Ë ‚Ë‰ÊÂÚÓ‚ ‚ ÒÔËÒÍË Ëı ı‡ÌÂÌËˇ
-            self.tbl.insertRow(row_position)
-            self.widgets_mas.append([ComboPickCake(self.main_window, self.dict_cake_id), DateEdit(self.main_window),
-                                     DateEdit(self.main_window)])
-
-            # ‚ÒÚ‡‚Í‡ ‚Ë‰ÊÂÚÓ‚ ‚ Ú‡·ÎËˆÛ
-            self.tbl.setItem(row_position, 0, QtWidgets.QTableWidgetItem(new_id))
-            self.tbl.setCellWidget(row_position, 3, self.widgets_mas[row_position][0])
-            self.tbl.setCellWidget(row_position, 4, self.widgets_mas[row_position][1])
-            self.tbl.setCellWidget(row_position, 5, self.widgets_mas[row_position][2])
-            self.tbl.setItem(row_position, 6, QtWidgets.QTableWidgetItem("-"))
-
-            self.row_flag = False
-        else:  # ÔÓÔ˚ÚÍ‡ ‰Ó·‡‚ËÚ¸ ·ÓÎÂÂ Ó‰ÌÓÈ ÌÂÒÓı‡ÌÌÂÌÓÈ ÒÚÓÍË
-            self.lbl_info.setText('—Óı‡ÌËÚÂ Ú‡·ÎËˆÛ')
-
-    def delete_row(self):
-        """”‰‡ÎÂÌËÂ ‚˚·‡ÌÌÓÈ ÒÚÓÍË. —‡·‡Ú˚‚‡ÂÚ ÔË Ì‡Ê‡ÚËË Ì‡ ÍÌÓÔÍÛ '”‰‡ÎËÚ¸'"""
-        if self.tbl.rowCount() > 0 and self.tbl.currentRow() != -1:  # ÂÒÎË Ú‡·ÎËˆ‡ ÌÂÔÛÒÚ‡ˇ
-            current_row = self.tbl.currentRow()
-            self.tbl.removeRow(current_row)
-            # Û‰‡ÎÂÌËÂ ˝ÍÁÂÏÔÎˇÓ‚ ‚Ë‰ÊÂÚÓ‚
-            del self.widgets_mas[current_row]
-
     def save_data(self):
-        """—Óı‡ÌÂÌËÂ ‰‡ÌÌ˚ı ‚ Ú‡·ÎËˆÛ sql. —‡·‡Ú˚‚‡ÂÚ ÔË Ì‡Ê‡ÚËË Ì‡ ÍÌÓÔÍÛ '—Óı‡ÌËÚ¸'"""
+        """–°–æ—Ö—Ä–∞–Ω–µ–Ω–∏–µ –¥–∞–Ω–Ω—ã—Ö –≤ —Ç–∞–±–ª–∏—Ü—É sql. –°—Ä–∞–±–∞—Ç—ã–≤–∞–µ—Ç –ø—Ä–∏ –Ω–∞–∂–∞—Ç–∏–∏ –Ω–∞ –∫–Ω–æ–ø–∫—É '–°–æ—Ö—Ä–∞–Ω–∏—Ç—å'"""
         try:
-            data = []  # ÒÔËÒÓÍ, ı‡Ìˇ˘ËÈ ‰‡ÌÌ˚Â ËÁ Ú‡·ÎËˆ˚ ‰Îˇ ÒÓÒÚ‡‚ÎÂÌËˇ sql Á‡ÔÓÒ‡
+            data = []  # —Å–ø–∏—Å–æ–∫, —Ö—Ä–∞–Ω—è—â–∏–π –¥–∞–Ω–Ω—ã–µ –∏–∑ —Ç–∞–±–ª–∏—Ü—ã –¥–ª—è —Å–æ—Å—Ç–∞–≤–ª–µ–Ω–∏—è sql –∑–∞–ø—Ä–æ—Å–∞
 
-            for row in range(self.tbl.rowCount()):  # Á‡ÔÓÎÌÂÌËÂ data
+            for row in range(self.ui.tbl.rowCount()):  # –∑–∞–ø–æ–ª–Ω–µ–Ω–∏–µ data
                 data.append([])
-                if not self.tbl.item(row, 0).text().isdigit():
+                if not self.ui.tbl.item(row, 0).text().isdigit():
                     raise Exception
-                data[row].append(self.tbl.item(row, 0).text())
-                data[row].append(self.tbl.item(row, 1).text())
-                data[row].append(self.tbl.item(row, 2).text())
+                data[row].append(self.ui.tbl.item(row, 0).text())
+                data[row].append(self.ui.tbl.item(row, 1).text())
+                data[row].append(self.ui.tbl.item(row, 2).text())
+                data[row].append(self.ui.tbl.item(row, 3).text())
                 data[row].append(self.dict_cake_id[self.widgets_mas[row][0].currentText()])
                 two_date = [self.widgets_mas[row][1].date().toPyDate().strftime('%Y-%m-%d'),
                             self.widgets_mas[row][2].date().toPyDate().strftime('%Y-%m-%d')]
                 data[row].append(two_date[0])
                 data[row].append(two_date[1])
 
-            connection = sqlite3.connect(self.bd)
-            cur = connection.cursor()
-            query = "INSERT INTO orders (id_main, fio, phone, id_cake, date_begin, date_end)" \
-                    "VALUES (?, ?, ?, ?, ?, ?);"
-            cur.execute("DELETE FROM orders")  # Û‰‡ÎÂÌËÂ ÒÚ‡˚ı ‰‡ÌÌ˚ı Ò Ú‡·ÎËˆ˚ sql
-            cur.executemany(query, data)  # ‚ÒÚ‡‚Í‡ ÌÓ‚˚ı ‰‡ÌÌ˚ı ‚ Ú‡·ÎËˆÛ sql
-            self.lbl_info.setText(f"ƒ‡ÌÌ˚Â ·˚ÎË ÒÓı‡ÌÂÌ˚: (ÍÓÎ-‚Ó: {cur.rowcount})")
-            connection.commit()
-            connection.close()
+            save_rows_count = asyncio.run(self.ex.save_data(data))
+            self.ui.lbl_info_tbl.setText(f"–î–∞–Ω–Ω—ã–µ –±—ã–ª–∏ —Å–æ—Ö—Ä–∞–Ω–µ–Ω—ã: (–∫–æ–ª-–≤–æ: {save_rows_count})")
             self.row_flag = True
 
-        except AttributeError as e:  # ÂÒÎË ˇ˜ÂÈÍ‡(ÍË) ÔÛÒÚ˚Â ËÎË ÌÂÔ‡‚ËÎ¸Ì˚È ÚËÔ ‚‚Ó‰ËÏ˚ı ‰‡ÌÌ˚ı
-            print(e)
-            self.lbl_info.setText('«‡ÔÓÎÌËÚÂ ‚ÒÂ ÔÓÎˇ ÍÓÂÍÚÌÓ')
+        except AttributeError:  # –µ—Å–ª–∏ —è—á–µ–π–∫–∞(–∫–∏) –ø—É—Å—Ç—ã–µ –∏–ª–∏ –Ω–µ–ø—Ä–∞–≤–∏–ª—å–Ω—ã–π —Ç–∏–ø –≤–≤–æ–¥–∏–º—ã—Ö –¥–∞–Ω–Ω—ã—Ö
+            self.ui.lbl_info_tbl.setText('–ó–∞–ø–æ–ª–Ω–∏—Ç–µ –≤—Å–µ –ø–æ–ª—è –∫–æ—Ä—Ä–µ–∫—Ç–Ω–æ')
+
+    def add_new_row(self):
+        """
+        –î–æ–±–∞–≤–ª–µ–Ω–∏–µ –Ω–æ–≤–æ–π —Å—Ç—Ä–æ–∫–∏.–°—Ä–∞–±–∞—Ç—ã–≤–∞–µ—Ç –ø—Ä–∏ –Ω–∞–∂–∞—Ç–∏–∏ –Ω–∞ –∫–Ω–æ–ø–∫—É '–î–æ–±–∞–≤–∏—Ç—å'
+        –ë–µ–∑ —Å–æ—Ö—Ä–∞–Ω–µ–Ω–∏—è –¥–∞–Ω–Ω—ã—Ö –º–æ–∂–Ω–æ –¥–æ–±–∞–≤–∏—Ç—å —Ç–æ–ª—å–∫–æ –æ–¥–Ω—É —Å—Ç—Ä–æ–∫—É, –∑–∞ —ç—Ç–æ –æ—Ç–≤–µ—á–∞–µ—Ç self.row_flag
+        """
+        if self.row_flag:  # –µ—Å–ª–∏ –±—ã–ª–∞ –¥–æ–±–∞–≤–ª–µ–Ω–∞ –æ–¥–Ω–∞ –Ω–µ—Å–æ—Ö—Ä–∞–Ω–Ω–µ–Ω–∞—è —Å—Ç—Ä–æ–∫–∞
+            row_position = self.ui.tbl.rowCount()
+            new_id = str(int(self.ui.tbl.item(row_position - 1, 0).text()) + 1)
+
+            # –¥–æ–±–∞–≤–ª–µ–Ω–∏–µ –Ω–æ–≤–æ–π —Å—Ç—Ä–æ–∫–∏ –∏ –≤–∏–¥–∂–µ—Ç–æ–≤ –≤ —Å–ø–∏—Å–∫–∏ –∏—Ö —Ö—Ä–∞–Ω–µ–Ω–∏—è
+            self.ui.tbl.insertRow(row_position)
+            self.widgets_mas.append([ComboPickCake(self, self.dict_cake_id), DateEdit(self), DateEdit(self)])
+
+            # –≤—Å—Ç–∞–≤–∫–∞ –≤–∏–¥–∂–µ—Ç–æ–≤ –≤ —Ç–∞–±–ª–∏—Ü—É
+            self.ui.tbl.setItem(row_position, 0, QtWidgets.QTableWidgetItem(new_id))
+            self.ui.tbl.setCellWidget(row_position, 4, self.widgets_mas[row_position][0])
+            self.ui.tbl.setCellWidget(row_position, 5, self.widgets_mas[row_position][1])
+            self.ui.tbl.setCellWidget(row_position, 6, self.widgets_mas[row_position][2])
+            self.ui.tbl.setItem(row_position, 7, QtWidgets.QTableWidgetItem("-"))
+
+            self.row_flag = False
+        else:  # –ø–æ–ø—ã—Ç–∫–∞ –¥–æ–±–∞–≤–∏—Ç—å –±–æ–ª–µ–µ –æ–¥–Ω–æ–π –Ω–µ—Å–æ—Ö—Ä–∞–Ω–Ω–µ–Ω–æ–π —Å—Ç—Ä–æ–∫–∏
+            self.ui.lbl_info_tbl.setText('–°–æ—Ö—Ä–∞–Ω–∏—Ç–µ —Ç–∞–±–ª–∏—Ü—É')
+
+    def delete_row(self):
+        """–£–¥–∞–ª–µ–Ω–∏–µ –≤—ã–±—Ä–∞–Ω–Ω–æ–π —Å—Ç—Ä–æ–∫–∏. –°—Ä–∞–±–∞—Ç—ã–≤–∞–µ—Ç –ø—Ä–∏ –Ω–∞–∂–∞—Ç–∏–∏ –Ω–∞ –∫–Ω–æ–ø–∫—É '–£–¥–∞–ª–∏—Ç—å'"""
+        if self.ui.tbl.rowCount() > 0 and self.ui.tbl.currentRow() != -1:  # –µ—Å–ª–∏ —Ç–∞–±–ª–∏—Ü–∞ –Ω–µ–ø—É—Å—Ç–∞—è
+            current_row = self.ui.tbl.currentRow()
+            self.ui.tbl.removeRow(current_row)
+            # —É–¥–∞–ª–µ–Ω–∏–µ —ç–∫–∑–µ–º–ø–ª—è—Ä–æ–≤ –≤–∏–¥–∂–µ—Ç–æ–≤
+            del self.widgets_mas[current_row]
+
+    def list_ingredients(self):
+        self.min_date = self.ui.date_begin_ingr.date().toPyDate().strftime('%Y-%m-%d')
+        self.max_date = self.ui.date_end_ingr.date().toPyDate().strftime('%Y-%m-%d')
+        self.ui.list_ingredients.clear()
+        result_list = asyncio.run(self.ex.list_ingredients(self.ui.combo_ingr.currentText(),
+                                                           self.min_date, self.max_date))
+        self.ui.list_ingredients.addItems(result_list)

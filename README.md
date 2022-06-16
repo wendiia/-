@@ -25,7 +25,7 @@ This application is written on the [PyQt6](https://pypi.org/project/PyQt6/) appl
 
 ### Project structure
 
-- the main part of the application formation is located in the OrderSystem file
+- The processing of the cocktail file is located in OrderSystem
 - Creating and configuring a gui is located in the GuiApp folder
 - The application is launched in a file main.py
 
@@ -33,7 +33,7 @@ This application is written on the [PyQt6](https://pypi.org/project/PyQt6/) appl
 - Novoselova varvara
 
 ## License
-- This project is licensed under the MIT License - see the [LICENSE](https://github.com/wendiia/course_work/blob/master/LICENSE) file for details
+- This project is licensed under the MIT License - see the [LICENSE](https://github.com/AndreyChagin/course-paper/blob/master/LICENSE) file for details
 
 ## Gratitude
 - Inspiration to all

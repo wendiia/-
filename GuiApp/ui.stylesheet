@@ -1,0 +1,334 @@
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+Products_page */
+QFrame#left_body QPushButton{
+	font: 20pt "Microsoft YaHei UI Light";
+	border: none;
+	border-radius: 5px;
+	color: #fff;
+}
+QFrame#sort_ingredients QLabel{
+	font: 20pt "Microsoft YaHei UI Light";
+	border: 1px solid transparent;
+	border-radius: 10px;
+	color: #fff;
+}
+QFrame#left_body QLabel{
+	font: 14pt "Segoe Script";
+	font-size: 35px;
+	color: rgb(239, 119, 135);
+}
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+Orders_page */
+QFrame#btns_table QPushButton{
+	font: 20pt "Microsoft YaHei UI Light";
+	border: none;
+	border-radius: 5px;
+	color: #fff;
+}
+QLabel#lbl_cost {
+	font: 30pt "Microsoft YaHei UI Light";
+	color: rgb(239, 119, 135);
+}
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+Home_page */
+QFrame#body_frame{
+	background-image:url(:/icons/icons/cake.png);
+	background-repeat: none;
+	background-position: right bottom;
+}
+QWidget#home_page QLabel#lbl_home{
+	font: 45pt "Microsoft YaHei UI Light";
+	color: rgb(255, 255, 255);
+	padding-left: 20px;
+	border: none;
+	border-radius: 10px;
+}
+QFrame#body_frame QLabel{
+	font: 25pt "Segoe Print";
+	border: none;
+	border-radius: 10px;
+	color: rgb(238, 113, 130);
+	background-image: url(:/icons/icons/angle-small-right-free-icon-font.png);
+	background-repeat: none;
+	padding-left: 25px;
+	background-position:  left center;
+}
+QFrame#body_frame QLabel:hover{
+	color: rgb(255, 255, 255);
+}
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+QFrame#middle_body */
+QFrame#middle_body{
+	background-color: qlineargradient(spread:pad, x1:0.501, y1:1, x2:0.482, y2:0.01, stop:0 rgba(255, 221, 227, 255),
+    stop:1 rgba(255, 255, 255, 255));
+}
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+QFrame#main_footer */
+QFrame#main_footer{
+	background-color: rgb(255, 198, 208);
+	font-family: Arial;
+	font-size: 16px;
+	font-weight: bold;
+	color: rgb(177, 136, 160);
+}
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+QFrame#left_menu */
+QFrame#left_side_menu QPushButton#btn_home_menu{
+	background-image: url(:/icons/icons/home-icon.png);
+	background-repeat: none;
+	padding-left: 50px;
+	background-position:  left center;
+}
+QFrame#left_side_menu QPushButton#btn_orders_menu{
+	background-image: url(:/icons/icons/edit-free-icon-font.png);
+	background-repeat: none;
+	padding-left: 50px;
+	background-position: center left;
+}
+QFrame#left_side_menu QPushButton#btn_products_menu{
+	background-image: url(:/icons/icons/list-check-free-icon-font.png);
+	background-repeat: none;
+	padding-left: 50px;
+	background-position: center left;
+}
+QFrame#left_side_menu {
+	background-color: qlineargradient(spread:pad, x1:0.475, y1:0.063, x2:0.491, y2:0.966,
+    stop:0 rgba(246, 149, 164, 255), stop:1 rgba(236, 107, 124, 255));
+}
+QFrame#left_side_menu QPushButton{
+	font-family: Arial;
+	font-size: 20px;
+	padding: 5px 10 px;
+	border: none;
+	border-radius: 5px;
+	color: #fff;
+}
+QFrame#left_side_menu QPushButton:hover{
+	background-color: rgb(249, 193, 202);
+}
+QFrame#left_menu_toggle QPushButton {
+	border-radius: 8px;
+}
+QFrame#left_menu_toggle QPushButton:hover{
+	background-color: rgb(249, 193, 202);
+}
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+QFrame#main_header */
+QFrame#main_header {
+	background-color: rgb(246, 148, 164);
+}
+QFrame#main_header QLabel{
+	font-family: 'Rozovii Chulok';
+	font-size: 50px;
+	font-weight: bold;
+	color: #fff;
+}
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+ListWidget */
+QListWidget{
+	font: 20pt "Microsoft YaHei UI Light";
+	color: rgb(239, 119, 151);
+	font-weight: bold;
+	border-radius: 5px;
+	border: 2px solid rgb(246, 148, 164);
+    padding: 5px 5px 5px 10px;
+}
+QListWidget::item:hover{
+	background-color: rgb(255, 198, 208);
+	border-radius: 5px;
+	border: 2px solid rgb(255, 198, 208);
+}
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+DateEdit */
+QDateEdit {
+	font: 20pt "Microsoft YaHei UI Light";
+	color: rgb(236, 109, 126);
+	font-weight: bold;
+	padding-left: 5px;
+	selection-color: rgb(255, 255, 255);
+	border-radius: 5px;
+	border: 2px solid rgb(246, 148, 164);
+	selection-background-color: rgb(255, 198, 208);
+}
+QDateEdit::drop-down {
+	subcontrol-origin: padding;
+	subcontrol-position: top right;
+	width: 25px;
+	background-color: rgb(246, 148, 164);
+	background-image: url(:/icons/icons/angle-down.png);
+	background-position: center;
+	background-repeat: no-repeat;
+ }
+QDateEdit:hover {
+	background-color: rgb(255, 244, 246);
+	border: 2px solid rgb(255, 198, 208);
+}
+QCalendarWidget QMenu{
+	font: 20pt "Microsoft YaHei UI Light";
+	color:rgb(236, 109, 126);
+}
+QCalendarWidget QToolButton {
+	width:100px;
+	color:rgb(236, 109, 126);
+	font: 15pt "Microsoft YaHei UI Light";
+	icon-size:36px,36px;
+}
+QCalendarWidget  QWidget{
+	font: 15pt "Microsoft YaHei UI Light";
+	font-weight: bold;
+	alternate-background-color: rgb(246, 148, 164);
+	background-color: rgb(255, 244, 246);
+
+}
+QCalendarWidget QAbstractItemView:enabled {
+	font: 20pt "Microsoft YaHei UI Light";
+	color:rgb(236, 109, 126);
+	background-color: rgb(255, 198, 208);
+	selection-background-color: rgb(236, 107, 124);
+	selection-color: rgb(255, 255, 255);
+}
+QCalendarWidget QToolButton#qt_calendar_prevmonth {
+    qproperty-icon: url(:/icons/icons/angle-left-free-icon-font.png);
+}
+
+QCalendarWidget QToolButton#qt_calendar_nextmonth {
+    qproperty-icon: url(:/icons/icons/angle-right-free-icon-font.png);
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+ComboBox */
+QComboBox{
+	font: 20pt "Microsoft YaHei UI Light";
+	color: rgb(239, 119, 151);
+	font-weight: bold;
+	border-radius: 5px;
+	border: 2px solid rgb(246, 148, 164);
+	padding-left: 10px;
+}
+QComboBox:hover{
+	border-radius: 5px;
+	border: 2px solid rgb(246, 148, 164);
+}
+QComboBox::drop-down {
+	subcontrol-origin: padding;
+	subcontrol-position: top right;
+	width: 25px;
+	background-color: rgb(246, 148, 164);
+	background-image: url(:/icons/icons/angle-down.png);
+	background-position: center;
+	background-repeat: no-reperat;
+ }
+QComboBox QAbstractItemView {
+	border-radius: 5px;
+	border: 2px solid rgb(246, 148, 164);
+	padding: 10px;
+	color: rgb(246, 148, 164);
+	selection-background-color: rgb(255, 198, 208);
+}
+
+/* ////////////////////////////////QTableWidget */
+
+QTableWidget {
+	font: 15pt "Microsoft YaHei UI Light";
+	font-weight: bold;
+	color: #fff;
+	background-color:transparent;
+    border: none;
+	gridline-color: rgb(246, 148, 164);
+}
+QTableWidget::item{
+	color: rgb(242, 131, 147);
+    border: 1px solid rgb(246, 148, 164);
+	/*border-radius: 2px;*/
+}
+QTableWidget::item:selected{
+background-color: rgb(255, 198, 208);
+}
+QHeaderView::section:horizontal
+{
+	font: 14pt "Microsoft YaHei UI Light";
+	color: rgb(255, 255, 255);
+    border: 1px solid rgb(237, 113, 130);
+	background-color: rgb(246, 148, 164);
+	padding: 3px;
+	border-radius: 5px;
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+ScrollBars */
+QScrollBar:horizontal {
+    border: 1px solid rgb(246, 148, 164);
+    height: 13px;
+    margin: 0px 21px 0 21px;
+	border-radius: 4px;
+}
+QScrollBar::handle:horizontal {
+    background-color: rgb(255, 198, 208);
+    min-width: 25px;
+	border-radius: 4px
+}
+QScrollBar::add-line:horizontal {
+    border: none;
+	background-color: rgb(246, 148, 164);
+    width: 20px;
+	border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    subcontrol-position: right;
+    subcontrol-origin: margin;
+}
+QScrollBar::sub-line:horizontal {
+
+	background-color: rgb(246, 148, 164);
+    width: 20px;
+	border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+    subcontrol-position: left;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::up-arrow:horizontal, QScrollBar::down-arrow:horizontal
+{
+     background: none;
+}
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal
+{
+     background: none;
+}
+
+ QScrollBar:vertical {
+    border: 1px solid rgb(246, 148, 164);
+    width: 15px;
+   margin: 21px 0 21px 0;
+	border-radius: 4px;
+ }
+ QScrollBar::handle:vertical {
+	background-color: rgb(255, 198, 208);
+    min-height: 25px;
+	border-radius: 4px;
+ }
+ QScrollBar::add-line:vertical {
+    border: none;
+	background-color: rgb(246, 148, 164);
+    height: 20px;
+	border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+    subcontrol-position: bottom;
+    subcontrol-origin: margin;
+ }
+ QScrollBar::sub-line:vertical {
+	border: none;
+	background-color: rgb(246, 148, 164);
+    height: 20px;
+	border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    subcontrol-position: top;
+    subcontrol-origin: margin;
+ }
+ QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
+	background: none;
+ }
+
+ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+ }
+
