@@ -2,4 +2,6 @@ aiosqlite==0.17.0
 PyQt5==5.15.6
 PyQt5-Qt5==5.15.2
 PyQt5-sip==12.10.1
-typing-extensions==4.2.0
+asyncqt~=0.8.0
+
+

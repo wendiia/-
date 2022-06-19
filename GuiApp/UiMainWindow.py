@@ -8,7 +8,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
-# os.system('Pyrcc5 file.qrc -o file_qrc.py')
 
 
 class UiMainWindow(object):

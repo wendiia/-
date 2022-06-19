@@ -6,52 +6,63 @@ from PyQt5.QtWidgets import QMainWindow
 import asyncio
 import SqlData
 from GuiApp import *
-WINDOW_SIZE = 0
+from asyncqt import asyncSlot
+from Singleton import Singleton
 
 
+@Singleton()
 class OrderSystem(QMainWindow):
     def __init__(self):
-        self.all_money = None
-        self.ex = None
+        QMainWindow.__init__(self)
+        self.ui = UiMainWindow(self)
+        self.ui.setup_ui()
+        self.db = SqlData.ex_db
+        self.window_size = 0
+        self.all_money = ""
         self.dict_cake_id = {}  # словарь {id_cake: name_cake}, из таблицы cake (cake_db)
         self.widgets_mas = []  # экземпляры объектов класса виджетов: [[Combo_cakes(), Date_edit(), Date_edit()]]
         self.ingredients = []
-        self.min_date = ""
-        self.max_date = ""
-        self.row_flag = True
+        self.min_date, self.max_date = ("", "")
+        self.one_row_flag = True
         self.animation = None
         self.click_position = None
-        QMainWindow.__init__(self)
-
-        self.ui = UiMainWindow(self)
-        self.ui.setup_ui()
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         QtWidgets.QSizeGrip(self.ui.size_grip)
-
-        def move_window(e):
-            if not self.isMaximized():
-                if e.buttons() == Qt.LeftButton:
-                    self.move(self.pos() + e.globalPos() - self.click_position)
-                    self.click_position = e.globalPos()
-                    e.accept()
-
-        self.ui.main_header.mouseMoveEvent = move_window
+        self.ui.main_header.mouseMoveEvent = self.move_window
         self.ui.btn_toggle.clicked.connect(lambda: self.slide_left_menu())
-        self.ui.stacked_widget.setCurrentWidget(self.ui.orders_page)
+        self.ui.stacked_widget.setCurrentWidget(self.ui.home_page)
         self.settings_ui_btns()
+        self.async_init()
+        self.show()
 
-        self.db = "./SqlData/CakeDb.db"  # подумай где лучше хранить в датабазе или тут
-        asyncio.run(self.main_async())
+    def move_window(self, e):
+        if not self.isMaximized():
+            if e.buttons() == Qt.LeftButton:
+                self.move(self.pos() + e.globalPos() - self.click_position)
+                self.click_position = e.globalPos()
+                e.accept()
 
+    @asyncSlot()
+    async def async_init(self):
+        result = await asyncio.gather(self.db.min_max_dates(), self.db.get_ingredients(), self.db.cake_id())
+        self.min_date, self.max_date = result[0][0], result[0][1]
+        self.ingredients = result[1]
+        self.dict_cake_id = result[2]
         self.ui.date_begin_ingr.setDate(QDate.fromString(self.min_date, "yyyy-MM-dd"))
         self.ui.date_end_ingr.setDate(QDate.fromString(self.max_date, "yyyy-MM-dd"))
         self.ui.combo_ingr.addItems(self.ingredients)
 
-        # вызов начальных ф-ий
-        self.clicked_btn()
-        self.load_date()  # загрузка изначальнеых данных с бд
-        self.list_ingredients()
-        self.show()
+        await self.load_date()
+        await self.clicked_btn()
+        await self.list_ingredients()
+
+    async def clicked_btn(self):
+        """Обработчик кнопок"""
+        self.ui.btn_load.clicked.connect(self.load_date)
+        self.ui.btn_add.clicked.connect(self.add_new_row)
+        self.ui.btn_del.clicked.connect(self.delete_row)
+        self.ui.btn_save.clicked.connect(self.save_data)
+        self.ui.btn_products.clicked.connect(self.list_ingredients)
 
     def mousePressEvent(self, event):
         self.click_position = event.globalPos()
@@ -79,41 +90,25 @@ class OrderSystem(QMainWindow):
                                                   self.ui.stacked_widget.setCurrentWidget(self.ui.products_page))
 
     def restore_maximize_win(self):
-        global WINDOW_SIZE
-        win_status = WINDOW_SIZE
+        win_status = self.window_size
         if win_status == 0:
-            WINDOW_SIZE = 1
+            self.window_size = 1
             self.showMaximized()
         else:
-            WINDOW_SIZE = 0
+            self.window_size = 0
             self.showNormal()
 
-    async def main_async(self):
-        self.ex = SqlData.Database(self.db)
-        result = await asyncio.gather(self.ex.min_max_dates(), self.ex.get_ingredients(),
-                                      self.ex.cake_id(), self.ex.orders_data())
-        self.min_date, self.max_date = result[0][0], result[0][1]
-        self.ingredients = result[1]
-        self.dict_cake_id = result[2]
-
-    def clicked_btn(self):
-        """Обработчик кнопок"""
-        self.ui.btn_load.clicked.connect(self.load_date)
-        self.ui.btn_add.clicked.connect(self.add_new_row)
-        self.ui.btn_del.clicked.connect(self.delete_row)
-        self.ui.btn_save.clicked.connect(self.save_data)
-        self.ui.btn_products.clicked.connect(self.list_ingredients)
-
-    def load_date(self):
+    @asyncSlot()
+    async def load_date(self):
         """
         Загрузка данных с бд sql CakeDb.db. Срабатывает при нажатии на кнопку 'Загрузить'.
         """
         # очищение списков, хранящих экземпляры виджетов comboBox и dateEdit
         self.widgets_mas.clear()
-        data_orders = asyncio.run(self.ex.orders_data())
-        all_money = f"Итоговая прибыль: {str(asyncio.run(self.ex.all_money())[0][0]) } руб."
+        data_orders = await self.db.orders_data()
+        all_money = await self.db.all_money()
+        all_money = f"Итоговая прибыль: {all_money[0]} руб."
         self.ui.lbl_cost.setText(all_money)
-
         self.ui.tbl.setRowCount(0)
 
         for row_number, row_data in enumerate(data_orders):  # проход по данным таблицы sql
@@ -138,9 +133,18 @@ class OrderSystem(QMainWindow):
                     self.widgets_mas[row_number][2].setDate(QDate(date))
 
         self.ui.lbl_info_tbl.setText("Данные загружены")
-        self.row_flag = True
+        self.one_row_flag = True
 
-    def save_data(self):
+    @asyncSlot()
+    async def list_ingredients(self):
+        self.min_date = self.ui.date_begin_ingr.date().toPyDate().strftime('%Y-%m-%d')
+        self.max_date = self.ui.date_end_ingr.date().toPyDate().strftime('%Y-%m-%d')
+        self.ui.list_ingredients.clear()
+        result_list = await self.db.list_ingredients(self.ui.combo_ingr.currentText(), self.min_date, self.max_date)
+        self.ui.list_ingredients.addItems(result_list)
+
+    @asyncSlot()
+    async def save_data(self):
         """Сохранение данных в таблицу sql. Срабатывает при нажатии на кнопку 'Сохранить'"""
         try:
             data = []  # список, хранящий данные из таблицы для составления sql запроса
@@ -148,6 +152,7 @@ class OrderSystem(QMainWindow):
             for row in range(self.ui.tbl.rowCount()):  # заполнение data
                 data.append([])
                 if not self.ui.tbl.item(row, 0).text().isdigit():
+                    self.ui.lbl_info_tbl.setText('ID должен быть числом')
                     raise Exception
                 data[row].append(self.ui.tbl.item(row, 0).text())
                 data[row].append(self.ui.tbl.item(row, 1).text())
@@ -159,34 +164,35 @@ class OrderSystem(QMainWindow):
                 data[row].append(two_date[0])
                 data[row].append(two_date[1])
 
-            save_rows_count = asyncio.run(self.ex.save_data(data))
+            save_rows_count = await self.db.save_data(data)
             self.ui.lbl_info_tbl.setText(f"Данные были сохранены: (кол-во: {save_rows_count})")
-            self.row_flag = True
+            self.one_row_flag = True
 
         except AttributeError:  # если ячейка(ки) пустые или неправильный тип вводимых данных
             self.ui.lbl_info_tbl.setText('Заполните все поля корректно')
 
-    def add_new_row(self):
+    @asyncSlot()
+    async def add_new_row(self):
         """
         Добавление новой строки.Срабатывает при нажатии на кнопку 'Добавить'
         Без сохранения данных можно добавить только одну строку, за это отвечает self.row_flag
         """
-        if self.row_flag:  # если была добавлена одна несохранненая строка
+        if self.one_row_flag:  # если была добавлена одна несохранненая строка
             row_position = self.ui.tbl.rowCount()
-            new_id = str(int(self.ui.tbl.item(row_position - 1, 0).text()) + 1)
+            res = str((await self.db.last_id_orders())[0] + 1)
 
             # добавление новой строки и виджетов в списки их хранения
             self.ui.tbl.insertRow(row_position)
             self.widgets_mas.append([ComboPickCake(self, self.dict_cake_id), DateEdit(self), DateEdit(self)])
 
             # вставка виджетов в таблицу
-            self.ui.tbl.setItem(row_position, 0, QtWidgets.QTableWidgetItem(new_id))
+            self.ui.tbl.setItem(row_position, 0, QtWidgets.QTableWidgetItem(res))
             self.ui.tbl.setCellWidget(row_position, 4, self.widgets_mas[row_position][0])
             self.ui.tbl.setCellWidget(row_position, 5, self.widgets_mas[row_position][1])
             self.ui.tbl.setCellWidget(row_position, 6, self.widgets_mas[row_position][2])
             self.ui.tbl.setItem(row_position, 7, QtWidgets.QTableWidgetItem("-"))
 
-            self.row_flag = False
+            self.one_row_flag = False
         else:  # попытка добавить более одной несохранненой строки
             self.ui.lbl_info_tbl.setText('Сохраните таблицу')
 
@@ -197,11 +203,3 @@ class OrderSystem(QMainWindow):
             self.ui.tbl.removeRow(current_row)
             # удаление экземпляров виджетов
             del self.widgets_mas[current_row]
-
-    def list_ingredients(self):
-        self.min_date = self.ui.date_begin_ingr.date().toPyDate().strftime('%Y-%m-%d')
-        self.max_date = self.ui.date_end_ingr.date().toPyDate().strftime('%Y-%m-%d')
-        self.ui.list_ingredients.clear()
-        result_list = asyncio.run(self.ex.list_ingredients(self.ui.combo_ingr.currentText(),
-                                                           self.min_date, self.max_date))
-        self.ui.list_ingredients.addItems(result_list)
