@@ -11,6 +11,8 @@ from PyQt5.QtCore import Qt
 
 
 class UiMainWindow(object):
+    """Класс UiMainWindow инициализирует виджеты и макеты приложения, производит их первоначальную настройку.
+    """
     def __init__(self, main_window):
         self.main_window = main_window
 
@@ -107,6 +109,9 @@ class UiMainWindow(object):
         self.combo_ingr = QtWidgets.QComboBox(self.sort_ingredients)
 
     def setup_ui(self):
+        """
+        Инициализация и настройка виджетов и макетов
+        """
         self.main_window.setObjectName("MainWindow")
         self.main_window.resize(1300, 600)
         self.main_window.setStyleSheet(open('./GuiApp/ui.stylesheet').read())

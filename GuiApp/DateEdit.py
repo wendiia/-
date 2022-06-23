@@ -4,6 +4,12 @@ from PyQt5.QtWidgets import QDateEdit
 
 
 class DateEdit(QDateEdit):
+    """Класс DateEdit переобределяет родительский класс QDateEdit , для назначения своих стилей
+    Parameters
+    ----------
+    parent: OrderSystem.OrderSystem
+    класс OrderSystem
+    """
     def __init__(self, parent):
         super().__init__(parent)
         self.setCalendarPopup(True)
