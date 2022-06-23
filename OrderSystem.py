@@ -12,6 +12,12 @@ from Singleton import Singleton
 
 @Singleton()
 class OrderSystem(QMainWindow):
+    """Класс OrderSystem содержит набор функций, импортируемых классов и модулей,
+    при помощи которых реализована логика работы приложения
+
+    Note:
+        Возможны проблемы с кодировкой в Linux
+    """
     def __init__(self):
         QMainWindow.__init__(self)
         self.ui = UiMainWindow(self)
@@ -19,8 +25,8 @@ class OrderSystem(QMainWindow):
         self.db = SqlData.ex_db
         self.window_size = 0
         self.all_money = ""
-        self.dict_cake_id = {}  # словарь {id_cake: name_cake}, из таблицы cake (cake_db)
-        self.widgets_mas = []  # экземпляры объектов класса виджетов: [[Combo_cakes(), Date_edit(), Date_edit()]]
+        self.dict_cake_id = {}
+        self.widgets_mas = []
         self.ingredients = []
         self.min_date, self.max_date = ("", "")
         self.one_row_flag = True
@@ -36,6 +42,12 @@ class OrderSystem(QMainWindow):
         self.show()
 
     def move_window(self, e):
+        """Позволяет перемещать рабочее окно приложения
+        Parameters
+        ----------
+        e : QMouseEvent
+            класс события мыши
+        """
         if not self.isMaximized():
             if e.buttons() == Qt.LeftButton:
                 self.move(self.pos() + e.globalPos() - self.click_position)
@@ -44,6 +56,9 @@ class OrderSystem(QMainWindow):
 
     @asyncSlot()
     async def async_init(self):
+        """
+        Точка входа в асинхронность
+        """
         result = await asyncio.gather(self.db.min_max_dates(), self.db.get_ingredients(), self.db.cake_id())
         self.min_date, self.max_date = result[0][0], result[0][1]
         self.ingredients = result[1]
@@ -57,7 +72,7 @@ class OrderSystem(QMainWindow):
         await self.list_ingredients()
 
     async def clicked_btn(self):
-        """Обработчик кнопок"""
+        """Присваивание функций кнопкам, которые связаны с управлением таблицей, списком ингредиентов"""
         self.ui.btn_load.clicked.connect(self.load_date)
         self.ui.btn_add.clicked.connect(self.add_new_row)
         self.ui.btn_del.clicked.connect(self.delete_row)
@@ -65,9 +80,19 @@ class OrderSystem(QMainWindow):
         self.ui.btn_products.clicked.connect(self.list_ingredients)
 
     def mousePressEvent(self, event):
+        """Срабатывает при нажатии ЛКМ в приложении
+        Основное применение - отслеживание координат мыши
+        Parameters
+        ----------
+        event : QMouseEvent
+            класс событий мыши
+        """
         self.click_position = event.globalPos()
 
     def slide_left_menu(self):
+        """
+        Выдвижение левой боковой панели при нажатии на btn_toggle
+        """
         width = self.ui.left_side_menu.width()
         if width == 50:
             new_width = 160
@@ -81,6 +106,9 @@ class OrderSystem(QMainWindow):
         self.animation.start()
 
     def settings_ui_btns(self):
+        """
+        Присваивание функций кнопкам GUI
+        """
         self.ui.btn_min.clicked.connect(lambda: self.showMinimized())
         self.ui.btn_restore.clicked.connect(lambda: self.restore_maximize_win())
         self.ui.btn_close.clicked.connect(lambda: self.close())
@@ -90,6 +118,9 @@ class OrderSystem(QMainWindow):
                                                   self.ui.stacked_widget.setCurrentWidget(self.ui.products_page))
 
     def restore_maximize_win(self):
+        """
+        Расширение окна и уменьшение до нормального размера
+        """
         win_status = self.window_size
         if win_status == 0:
             self.window_size = 1
@@ -103,7 +134,6 @@ class OrderSystem(QMainWindow):
         """
         Загрузка данных с бд sql CakeDb.db. Срабатывает при нажатии на кнопку 'Загрузить'.
         """
-        # очищение списков, хранящих экземпляры виджетов comboBox и dateEdit
         self.widgets_mas.clear()
         data_orders = await self.db.orders_data()
         all_money = await self.db.all_money()
@@ -111,13 +141,12 @@ class OrderSystem(QMainWindow):
         self.ui.lbl_cost.setText(all_money)
         self.ui.tbl.setRowCount(0)
 
-        for row_number, row_data in enumerate(data_orders):  # проход по данным таблицы sql
-            # вставка новой строки и добавление виджетов в списки
+        for row_number, row_data in enumerate(data_orders):
             self.ui.tbl.insertRow(row_number)
             self.widgets_mas.append([ComboPickCake(self, self.dict_cake_id), DateEdit(self),
                                      DateEdit(self)])
 
-            for col_number, col_data in enumerate(row_data):  # заполнение таблицы данными
+            for col_number, col_data in enumerate(row_data):
                 if col_number not in [4, 5, 6]:
                     self.ui.tbl.setItem(row_number, col_number, QtWidgets.QTableWidgetItem(str(col_data)))
                 elif col_number == 4:
@@ -137,6 +166,9 @@ class OrderSystem(QMainWindow):
 
     @asyncSlot()
     async def list_ingredients(self):
+        """
+        Формирование всего списка ингредиентов для добавления в comboBox
+        """
         self.min_date = self.ui.date_begin_ingr.date().toPyDate().strftime('%Y-%m-%d')
         self.max_date = self.ui.date_end_ingr.date().toPyDate().strftime('%Y-%m-%d')
         self.ui.list_ingredients.clear()
@@ -147,9 +179,9 @@ class OrderSystem(QMainWindow):
     async def save_data(self):
         """Сохранение данных в таблицу sql. Срабатывает при нажатии на кнопку 'Сохранить'"""
         try:
-            data = []  # список, хранящий данные из таблицы для составления sql запроса
+            data = []
 
-            for row in range(self.ui.tbl.rowCount()):  # заполнение data
+            for row in range(self.ui.tbl.rowCount()):
                 data.append([])
                 if not self.ui.tbl.item(row, 0).text().isdigit():
                     self.ui.lbl_info_tbl.setText('ID должен быть числом')
@@ -168,24 +200,22 @@ class OrderSystem(QMainWindow):
             self.ui.lbl_info_tbl.setText(f"Данные были сохранены: (кол-во: {save_rows_count})")
             self.one_row_flag = True
 
-        except AttributeError:  # если ячейка(ки) пустые или неправильный тип вводимых данных
+        except AttributeError:
             self.ui.lbl_info_tbl.setText('Заполните все поля корректно')
 
     @asyncSlot()
     async def add_new_row(self):
         """
         Добавление новой строки.Срабатывает при нажатии на кнопку 'Добавить'
-        Без сохранения данных можно добавить только одну строку, за это отвечает self.row_flag
+        Без сохранения данных можно добавить только одну строку, за это отвечает one_row_flag
         """
-        if self.one_row_flag:  # если была добавлена одна несохранненая строка
+        if self.one_row_flag:
             row_position = self.ui.tbl.rowCount()
             res = str((await self.db.last_id_orders())[0] + 1)
 
-            # добавление новой строки и виджетов в списки их хранения
             self.ui.tbl.insertRow(row_position)
             self.widgets_mas.append([ComboPickCake(self, self.dict_cake_id), DateEdit(self), DateEdit(self)])
 
-            # вставка виджетов в таблицу
             self.ui.tbl.setItem(row_position, 0, QtWidgets.QTableWidgetItem(res))
             self.ui.tbl.setCellWidget(row_position, 4, self.widgets_mas[row_position][0])
             self.ui.tbl.setCellWidget(row_position, 5, self.widgets_mas[row_position][1])
@@ -193,13 +223,12 @@ class OrderSystem(QMainWindow):
             self.ui.tbl.setItem(row_position, 7, QtWidgets.QTableWidgetItem("-"))
 
             self.one_row_flag = False
-        else:  # попытка добавить более одной несохранненой строки
+        else:
             self.ui.lbl_info_tbl.setText('Сохраните таблицу')
 
     def delete_row(self):
         """Удаление выбранной строки. Срабатывает при нажатии на кнопку 'Удалить'"""
-        if self.ui.tbl.rowCount() > 0 and self.ui.tbl.currentRow() != -1:  # если таблица непустая
+        if self.ui.tbl.rowCount() > 0 and self.ui.tbl.currentRow() != -1:
             current_row = self.ui.tbl.currentRow()
             self.ui.tbl.removeRow(current_row)
-            # удаление экземпляров виджетов
             del self.widgets_mas[current_row]
